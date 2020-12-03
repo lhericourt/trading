@@ -1,0 +1,12 @@
+fxcm:
+    authentication_key: ${TRADING_FXCM_KEY:-conf/secrets/fxcm_secret.txt}
+    logs_path: ${TRADING_FXCM_LOGS_PATH:-logs/fxcm.txt}
+database:
+    host: ${TRADING_DB_HOST:-localhost}
+    name: ${TRADING_DB_NAME:-trading}
+    port: ${TRADING_DB_PORT:-5700}
+    user: ${TRADING_DB_USER:-admin}
+    password_path: ${TRADING_DB_PASSWORD_PATH:-conf/secrets/postgres_secret.txt}
+
+
+

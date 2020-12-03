@@ -1,0 +1,66 @@
+import os
+import logging
+from traceback import print_tb
+
+from fxcmpy import fxcmpy
+import pandas as pd
+
+from database.utils import insert_df_to_db, get_uri_db
+from utils.utils import get_password, split_period_by_chunk
+
+logger = logging.getLogger('root')
+
+SYMBOLES = ['EUR/USD', 'USD/JPY', 'GBP/USD', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'USD/HKD', 'EUR/GBP']
+
+
+class FCXMContextManager(object):
+    def __init__(self, access_token: str, log_level: str, server: str, log_file: str) -> None:
+        self.conn = fxcmpy(access_token=access_token, log_level=log_level, server=server, log_file=log_file)
+
+    def __enter__(self) -> fxcmpy:
+        return self.conn
+
+    def __exit__(self, type_, value, traceback):
+        self.conn.close()
+        if type_ is not None:
+            logger.error(f'{type_} : {value}')
+            print_tb(traceback)
+        return True
+
+
+def get_candles(symbol: str, period: str = 'm5', start: str = None, end: str = None) -> pd.DataFrame:
+    logger.info(f"Getting candles from FXCM for symbol {symbol} from {start} to {end}")
+    access_token = get_password('TRADING_FXCM_KEY')
+    data = pd.DataFrame()
+    with FCXMContextManager(access_token=access_token, log_level='error', server='demo',
+                            log_file=os.environ['TRADING_FXCM_LOGS_PATH']) as conn:
+        data = conn.get_candles(symbol, period=period, columns=['bids'], with_index=False, start=start, end=end)
+        data.columns = ['date', 'open', 'close', 'low', 'high']
+        data['symbol'] = symbol
+    if data.empty:
+        logger.warning('No data has been retrieved')
+    return data
+
+
+def upload_to_db_candles(start: str, end: str) -> None:
+    uri = get_uri_db(schema='trading')
+
+    nb_days_one_chunk = 30
+    periods = split_period_by_chunk(start, end, nb_days_one_chunk)
+
+    for p in periods:
+        start_date = p[0]
+        end_date = p[1]
+        for symb in SYMBOLES:
+            candles = get_candles(symb, start=start_date, end=end_date)
+            insert_df_to_db(uri, candles, 'candle')
+
+
+
+
+
+
+
+
+
+

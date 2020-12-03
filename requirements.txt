@@ -1,0 +1,6 @@
+fxcm
+pandas
+python-socketio
+python-dateutil
+PyYAML
+yoyo-migrations
