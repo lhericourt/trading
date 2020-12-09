@@ -1,7 +1,8 @@
 import os
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from pathlib import Path
 from datetime import datetime, timedelta
+import re
 
 
 def get_password(env_variable: str) -> str:
@@ -33,4 +34,18 @@ def split_period_by_chunk(start: str, end: str, chunk_size: int) -> List[Tuple[s
         end_date = add_days_to_date(start, end_idx)
         split_dates.append((start_date, end_date))
     return split_dates
+
+
+def convert_to_number(val: str) -> Optional[float]:
+    if val is None:
+        return None
+    number_patter = r'([a_zA-Z%])'
+    processed_val = re.sub(number_patter, '', val).replace('.', '').replace(',', '.')
+    try:
+        processed_val = float(processed_val)
+    except Exception:
+        processed_val = None
+    return processed_val
+
+
 
