@@ -1,6 +1,10 @@
+apache-airflow
+beautifulsoup4
+cerberus
 fxcm
 pandas
 python-socketio
 python-dateutil
 PyYAML
+requests
 yoyo-migrations

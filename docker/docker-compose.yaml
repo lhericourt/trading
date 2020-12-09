@@ -3,6 +3,8 @@ version: '3.8'
 services:
   trading_db:
     image: postgres:9.6.20
+    hostname: trading_db
+    container_name: trading_db
     environment:
       POSTGRES_DB: trading
       POSTGRES_USER: admin
@@ -11,8 +13,51 @@ services:
       - "5700:5432"
     volumes:
       - trading_db:/var/lib/postgresql/data
+      - ./scripts/airflow_init_db.sql:/docker-entrypoint-initdb.d/init.sql
     secrets:
       - postgres_password
+
+  airflow_webserver:
+    image: apache/airflow:1.10.13-python3.8
+    hostname: airflow_webserver
+    container_name: airflow_webserver
+    depends_on:
+      - trading_db
+    env_file:
+      - ../conf/airflow.env
+    volumes:
+      - ./../airflow/dags:/opt/airflow/dags
+      - ./../logs:/opt/airflow/logs
+      - ./scripts:/opt/airflow/scripts
+    ports:
+      - "8080:8080"
+    entrypoint: sh /opt/airflow/scripts/airflow-entrypoint.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]" ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  airflow_scheduler:
+    image: apache/airflow:1.10.13-python3.8
+    hostname: airflow_scheduler
+    container_name: airflow_scheduler
+    depends_on:
+      - trading_db
+      - airflow_webserver
+    env_file:
+      - ../conf/airflow.env
+    ports:
+      - "8793:8793"
+    volumes:
+      - ./../airflow/dags:/opt/airflow/dags
+      - ./../logs:/opt/airflow/logs
+    command: scheduler
+    healthcheck:
+      test: [ "CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]" ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
 volumes:
   trading_db:
