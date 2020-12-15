@@ -6,9 +6,9 @@ from fxcmpy import fxcmpy
 import pandas as pd
 
 from database.utils import insert_df_to_db, get_uri_db
-from utils.utils import get_password, split_period_by_chunk
+from utils.utils import get_password, split_period_by_chunk, add_days_to_date
 
-logger = logging.getLogger('root')
+logger = logging.getLogger(__name__)
 
 SYMBOLES = ['EUR/USD', 'USD/JPY', 'GBP/USD', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'USD/HKD', 'EUR/GBP']
 
@@ -42,18 +42,27 @@ def get_candles(symbol: str, period: str = 'm5', start: str = None, end: str = N
     return data
 
 
-def upload_to_db_candles(start: str, end: str) -> None:
-    uri = get_uri_db(schema='trading')
+def get_candles_all_symbols(start: str, end: str) -> pd.DataFrame:
+    candles = pd.DataFrame()
+    end = add_days_to_date(end, 1)
+    for symb in SYMBOLES:
+        candles_tmp = get_candles(symb, start=start, end=end)
+        candles = pd.concat([candles, candles_tmp], axis=0)
+    candles.reset_index(inplace=True, drop=True)
+    return candles
 
+
+def upload_to_db_candles(start: str, end: str) -> None:
+    schema = 'trading'
+    uri = get_uri_db(schema=schema)
     nb_days_one_chunk = 30
     periods = split_period_by_chunk(start, end, nb_days_one_chunk)
 
     for p in periods:
         start_date = p[0]
         end_date = p[1]
-        for symb in SYMBOLES:
-            candles = get_candles(symb, start=start_date, end=end_date)
-            insert_df_to_db(uri, candles, 'candle')
+        candles = get_candles_all_symbols(start_date, end_date)
+        insert_df_to_db(uri, candles, 'candle', schema)
 
 
 

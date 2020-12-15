@@ -1,6 +1,5 @@
-from datetime import datetime
-from typing import Dict, List, Optional
 import logging
+from typing import Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -8,10 +7,9 @@ from cerberus import Validator
 import pandas as pd
 
 from utils.utils import convert_to_number, split_period_by_chunk
-from database.utils import get_uri_db, insert_df_to_db
+from database.utils import get_uri_db, insert_df_to_db, delete_data
 
-
-logger = logging.getLogger('root')
+logger = logging.getLogger(__name__)
 
 schema = {
     'time': {'type': 'string', 'nullable': False, 'regex': r'^\d{2}:\d{2}$'},
@@ -136,10 +134,12 @@ def get_events_on_period(start_date: str, end_date: str) -> pd.DataFrame:
     return events_df
 
 
-def upload_to_db_events(start: str, end: str) -> None:
-    uri = get_uri_db(schema='trading')
+def upload_to_db_events(start: str = None, end: str = None) -> None:
+    schema = 'trading'
+    uri = get_uri_db(schema=schema)
     events = get_events_on_period(start, end)
-    insert_df_to_db(uri, events, 'event')
+    delete_data(uri, 'event', schema, start, end)
+    insert_df_to_db(uri, events, 'event', schema=schema)
     return None
 
 

@@ -10,4 +10,3 @@ def do_migration(schema: str = None) -> None:
     migrations = read_migrations(str(Path('database') / Path('migrations')))
     backend.apply_migrations(backend.to_apply(migrations))
     return None
-

@@ -46,6 +46,3 @@ def convert_to_number(val: str) -> Optional[float]:
     except Exception:
         processed_val = None
     return processed_val
-
-
-

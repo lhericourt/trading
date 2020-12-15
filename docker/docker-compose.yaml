@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: trading
       POSTGRES_USER: admin
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    networks:
+      - trading
     ports:
       - "5700:5432"
     volumes:
@@ -25,13 +27,16 @@ services:
       - trading_db
     env_file:
       - ../conf/airflow.env
+    networks:
+      - trading
+    ports:
+      - "8792:8080"
     volumes:
-      - ./../airflow/dags:/opt/airflow/dags
+      - ./../airflow:/opt/airflow
       - ./../logs:/opt/airflow/logs
       - ./scripts:/opt/airflow/scripts
-    ports:
-      - "8080:8080"
-    entrypoint: sh /opt/airflow/scripts/airflow-entrypoint.sh
+      - ./../../trading:/opt/trading
+    entrypoint: sh /opt/airflow/scripts/airflow-entrypoint_webserver.sh
     healthcheck:
       test: [ "CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]" ]
       interval: 30s
@@ -47,12 +52,16 @@ services:
       - airflow_webserver
     env_file:
       - ../conf/airflow.env
+    networks:
+      - trading
     ports:
       - "8793:8793"
     volumes:
-      - ./../airflow/dags:/opt/airflow/dags
+      - ./../airflow:/opt/airflow
       - ./../logs:/opt/airflow/logs
-    command: scheduler
+      - ./scripts:/opt/airflow/scripts
+      - ./../../trading:/opt/trading
+    entrypoint: sh /opt/airflow/scripts/airflow-entrypoint_scheduler.sh
     healthcheck:
       test: [ "CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]" ]
       interval: 30s
@@ -66,6 +75,10 @@ volumes:
       type: 'none'
       o: 'bind'
       device: '${HOME}/Environnements/database/trading'
+
+networks:
+  trading:
+    driver: bridge
 
 secrets:
   postgres_password:

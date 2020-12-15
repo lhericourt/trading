@@ -19,5 +19,8 @@ def load_conf(filepath):
     for group_params in conf_values.values():
         for val in group_params.values():
             env_var, env_value = parse_value(val)
-            os.environ[env_var] = env_value
+            if env_var not in os.environ.keys():
+                os.environ[env_var] = env_value
     return
+
+
