@@ -7,7 +7,7 @@ from cerberus import Validator
 import pandas as pd
 
 from utils.utils import convert_to_number, split_period_by_chunk
-from database.utils import get_uri_db, insert_df_to_db, delete_data
+from db.utils import get_uri_db, insert_df_to_db, delete_data
 
 logger = logging.getLogger(__name__)
 

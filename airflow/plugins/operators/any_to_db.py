@@ -5,7 +5,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 
-from database.utils import insert_df_to_db, delete_data
+from db.utils import insert_df_to_db, delete_data
 from utils.utils import add_days_to_date
 
 

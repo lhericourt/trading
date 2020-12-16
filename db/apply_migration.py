@@ -1,7 +1,7 @@
 from pathlib import Path
 from yoyo import read_migrations, get_backend
 
-from database.utils import get_uri_db
+from db.utils import get_uri_db
 
 
 def do_migration(schema: str = None) -> None:

@@ -5,12 +5,12 @@ from traceback import print_tb
 from fxcmpy import fxcmpy
 import pandas as pd
 
-from database.utils import insert_df_to_db, get_uri_db
+from db.utils import insert_df_to_db, get_uri_db
 from utils.utils import get_password, split_period_by_chunk, add_days_to_date
 
 logger = logging.getLogger(__name__)
 
-SYMBOLES = ['EUR/USD', 'USD/JPY', 'GBP/USD', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'USD/HKD', 'EUR/GBP']
+SYMBOLS = ['EUR/USD', 'USD/JPY', 'GBP/USD', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'USD/HKD', 'EUR/GBP']
 
 
 class FCXMContextManager(object):
@@ -45,7 +45,7 @@ def get_candles(symbol: str, period: str = 'm5', start: str = None, end: str = N
 def get_candles_all_symbols(start: str, end: str) -> pd.DataFrame:
     candles = pd.DataFrame()
     end = add_days_to_date(end, 1)
-    for symb in SYMBOLES:
+    for symb in SYMBOLS:
         candles_tmp = get_candles(symb, start=start, end=end)
         candles = pd.concat([candles, candles_tmp], axis=0)
     candles.reset_index(inplace=True, drop=True)

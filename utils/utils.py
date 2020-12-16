@@ -7,7 +7,11 @@ import re
 
 def get_password(env_variable: str) -> str:
     password_path = os.environ[env_variable]
-    return Path(password_path).read_text()
+    if Path(password_path).is_file():
+        password = Path(password_path).read_text()
+    else:
+        password = Path(os.environ['TRADING_HOME'], password_path).read_text()
+    return password
 
 
 def get_nb_days(start: str, end: str) -> int:
