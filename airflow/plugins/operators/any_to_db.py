@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Callable
 
 from airflow.models.baseoperator import BaseOperator
@@ -6,7 +5,6 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 
 from db.utils import insert_df_to_db, delete_data
-from utils.utils import add_days_to_date
 
 
 class AnyToDb(BaseOperator):

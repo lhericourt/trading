@@ -34,8 +34,11 @@ def get_candles(symbol: str, period: str = 'm5', start: str = None, end: str = N
     data = pd.DataFrame()
     with FCXMContextManager(access_token=access_token, log_level='error', server='demo',
                             log_file=os.environ['TRADING_FXCM_LOGS_PATH']) as conn:
-        data = conn.get_candles(symbol, period=period, columns=['bids'], with_index=False, start=start, end=end)
-        data.columns = ['date', 'open', 'close', 'low', 'high']
+        data = conn.get_candles(symbol, period=period, columns=['asks'], with_index=False, start=start, end=end)
+        # We rename columns this way because it appears that the column order in API response can change
+        for col in ['askopen', 'askclose', 'askhigh', 'asklow']:
+            data[col[len('ask'):]] = data[col]
+            del data[col]
         data['symbol'] = symbol
     if data.empty:
         logger.warning('No data has been retrieved')

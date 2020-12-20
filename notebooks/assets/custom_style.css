@@ -1,0 +1,24 @@
+div {
+  font-family: sans-serif;
+}
+
+h1 {
+  text-align: center;
+}
+
+input[type="radio"]{
+  margin: 1em 1em 0 2em;
+}
+
+.label{
+  font-weight: bold;
+  font-style: italic;
+}
+
+.row {
+  display: flex;
+}
+.col {
+  flex: 1;
+  font-size: 14px;
+}
