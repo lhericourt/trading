@@ -7,7 +7,11 @@ h1 {
 }
 
 input[type="radio"]{
-  margin: 1em 1em 0 2em;
+  margin: 1em 0.5em 0 2em;
+}
+
+input[type="checkbox"]{
+  margin: 1em 0.5em 0 2em;
 }
 
 .label{
@@ -21,4 +25,6 @@ input[type="radio"]{
 .col {
   flex: 1;
   font-size: 14px;
+  border-style: inset;
+  margin: 0.2em;
 }

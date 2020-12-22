@@ -40,6 +40,11 @@ def get_candles(symbol: str, period: str = 'm5', start: str = None, end: str = N
             data[col[len('ask'):]] = data[col]
             del data[col]
         data['symbol'] = symbol
+
+        # For whatever reason sometimes high and low are not the lowest and the highest
+        data['high'] = data[['open', 'close', 'low', 'high']].max(axis=1)
+        data['low'] = data[['open', 'close', 'low', 'high']].min(axis=1)
+
     if data.empty:
         logger.warning('No data has been retrieved')
     return data

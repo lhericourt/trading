@@ -13,7 +13,7 @@ from data.economic_calendar import get_events_on_period
 logger = logging.getLogger(__name__)
 
 default_args = {
-    'start_date': datetime(2020, 12, 18),
+    'start_date': datetime(2020, 12, 19),
     'owner': 'airflow',
     'retries': 3,
     'retry_delay': timedelta(minutes=5),
