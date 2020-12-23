@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 
 class IndicatorAbstract(ABC):
-    def __init__(self, data: DataFrame, col: str):
+    def __init__(self, data: DataFrame, col: str = None):
         self.data = data
         self.col = col
         self.result = None
