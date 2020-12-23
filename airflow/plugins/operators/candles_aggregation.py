@@ -12,10 +12,11 @@ from utils.utils import add_days_to_date
 AGG = {'open': 'first',
        'close': 'last',
        'low': 'min',
-       'high': 'max'
+       'high': 'max',
+       'tickqty': 'sum'
        }
 
-COLS = ['symbol', 'day', 'open', 'close', 'low', 'high']
+COLS = ['symbol', 'day', 'open', 'close', 'low', 'high', 'tickqty']
 
 
 def compute_one_day_agg(candles: pd.DataFrame) -> (str, pd.DataFrame):
@@ -105,7 +106,7 @@ class CandleAggregation(BaseOperator):
                             EXTRACT(HOUR FROM date) AS hour,
                             30 * (EXTRACT(MINUTE FROM date)::INT / 30) AS min30,
                             15 * (EXTRACT(MINUTE FROM date)::INT / 15) AS min15,
-                            open, close, low, high
+                            open, close, low, high, tickqty
                           FROM candle
                           WHERE date >= %(start_date)s AND date < %(end_date)s
                           ORDER BY symbol, date;'''

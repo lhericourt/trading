@@ -13,6 +13,7 @@ steps = [
             close NUMERIC NOT NULL,
             low NUMERIC NOT NULL,
             high NUMERIC NOT NULL,
+            tickqty INTEGER NOT NULL,
             PRIMARY KEY (id),
             UNIQUE (date, symbol)
         );
@@ -36,6 +37,7 @@ steps = [
         close NUMERIC NOT NULL,
         low NUMERIC NOT NULL,
         high NUMERIC NOT NULL,
+        tickqty INTEGER NOT NULL,
         PRIMARY KEY (id),
         UNIQUE (date, symbol)
     );
@@ -60,6 +62,7 @@ steps = [
         close NUMERIC NOT NULL,
         low NUMERIC NOT NULL,
         high NUMERIC NOT NULL,
+        tickqty INTEGER NOT NULL,
         PRIMARY KEY (id),
         UNIQUE (date, symbol)
     );
@@ -83,6 +86,7 @@ steps = [
         close NUMERIC NOT NULL,
         low NUMERIC NOT NULL,
         high NUMERIC NOT NULL,
+        tickqty INTEGER NOT NULL,
         PRIMARY KEY (id),
         UNIQUE (date, symbol)
     );
@@ -106,6 +110,7 @@ steps = [
         close NUMERIC NOT NULL,
         low NUMERIC NOT NULL,
         high NUMERIC NOT NULL,
+        tickqty INTEGER NOT NULL,
         PRIMARY KEY (id),
         UNIQUE (date, symbol)
     );
