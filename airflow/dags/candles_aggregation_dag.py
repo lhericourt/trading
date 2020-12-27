@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 default_args = {
-    'start_date': datetime(2020, 11, 1),
+    'start_date': datetime(2020, 12, 23),
     'owner': 'airflow',
     'retries': 3,
     'retry_delay': timedelta(minutes=1),
