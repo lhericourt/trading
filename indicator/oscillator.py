@@ -1,19 +1,48 @@
+from typing import Tuple
 import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 
 from indicator.indicator import IndicatorAbstract
+from utils.utils import compute_average
+
+
+class Atr(IndicatorAbstract):
+    def compute(self, span: int = 14, avg_type='ma') -> Tuple[np.ndarray, np.ndarray]:
+        tr = pd.DataFrame()
+        tr['HL'] = self.data['high'] - self.data['low']
+        tr['HC'] = (self.data['high'] - self.data.shift(1)['close']).abs()
+        tr['LC'] = (self.data['low'] - self.data.shift(1)['close']).abs()
+        tr_max = tr.max(axis=1)
+        self.result = (np.array(compute_average(tr_max, span, avg_type)), np.array(tr_max))
+        return self.result
+
+    def plot(self, fig) -> go.Figure:
+        width = 1
+        color1 = 'rgba(46, 134, 193, 0.5)'
+        position = (1, 1)
+        atr, _ = self.result
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=atr,
+                                 mode='lines',
+                                 name='atr',
+                                 line=dict(color=color1, width=width)
+                                 ),
+                      row=position[0], col=position[1]
+                      )
+        return fig
 
 
 class Macd(IndicatorAbstract):
-    def compute(self, span_fast: int = 12, span_slow: int = 26, span_signal: int = 9) -> None:
+    def compute(self, span_fast: int = 12, span_slow: int = 26, span_signal: int = 9) -> Tuple[np.ndarray,
+                                                                                               np.ndarray, np.ndarray]:
         ewm_fast = self.data[self.col].ewm(span=span_fast, min_periods=span_fast).mean()
         ewm_slow = self.data[self.col].ewm(span=span_slow, min_periods=span_slow).mean()
         macd_ = ewm_fast - ewm_slow
         signal = macd_.ewm(span=span_signal, min_periods=span_signal).mean()
         hist = macd_ - signal
-        self.result = (macd_, signal, hist)
-        return
+        self.result = (macd_.values, signal.values, hist.values)
+        return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:
         width = 2
@@ -50,7 +79,7 @@ class Macd(IndicatorAbstract):
 
 
 class Rsi(IndicatorAbstract):
-    def compute(self, span=14) -> None:
+    def compute(self, span=14) -> np.ndarray:
         delta = self.data[self.col] - self.data[self.col].shift(1)
         delta_pos = np.where(delta >= 0, delta, 0)
         delta_neg = np.where(delta < 0, abs(delta), 0)
@@ -70,7 +99,7 @@ class Rsi(IndicatorAbstract):
         avg_loss = np.array(avg_loss)
         rs = avg_gain / avg_loss
         self.result = 100 - 100 / (1 + rs)
-        return
+        return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:
         width = 2
@@ -104,7 +133,7 @@ class Rsi(IndicatorAbstract):
 
 
 class Stochastic(IndicatorAbstract):
-    def compute(self, span_fast=14, span_slow=3, slow=False) -> None:
+    def compute(self, span_fast=14, span_slow=3, slow=False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         low = self.data['low'].rolling(span_fast, min_periods=span_fast).min()
         high = self.data['high'].rolling(span_fast, min_periods=span_fast).max()
         stoch = 100 * (self.data['close'] - low) / (high - low)
@@ -113,8 +142,8 @@ class Stochastic(IndicatorAbstract):
             stoch = stoch_ma
             stoch_ma = stoch.rolling(span_slow, min_periods=span_slow).mean()
         stoch_hist = stoch - stoch_ma
-        self.result = (stoch, stoch_ma, stoch_hist)
-        return
+        self.result = (stoch.values, stoch_ma.values, stoch_hist.values)
+        return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:
         width = 2
@@ -159,4 +188,33 @@ class Stochastic(IndicatorAbstract):
                       line=dict(color=color3, width=width, dash="dot"),
                       row=position[0], col=position[1]
                       )
+        return fig
+
+
+class Obv(IndicatorAbstract):
+    def compute(self) -> np.ndarray:
+        change = self.data['close'].pct_change()
+        direction_plus = np.where(change > 0, 1, 0)
+        direction_minus = np.where(change < 0, -1, 0)
+        direction = direction_plus + direction_minus
+        direction[0] = 0
+        volume_adj = self.data['tickqty'] * direction
+        self.result = volume_adj.cumsum().values
+        return self.result
+
+    def plot(self, fig: go.Figure) -> go.Figure:
+        width = 2
+        color1 = 'rgba(46, 134, 193, 0.5)'
+        position = (1, 1)
+        obv = self.result
+
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=obv,
+                                 mode='lines',
+                                 name='obv',
+                                 line=dict(color=color1, width=width)
+                                 ),
+                      row=position[0], col=position[1]
+                      )
+
         return fig

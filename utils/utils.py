@@ -3,6 +3,21 @@ from typing import Tuple, List, Optional
 from pathlib import Path
 from datetime import datetime, timedelta
 import re
+from enum import Enum
+
+import psycopg2
+import pandas as pd
+import numpy as np
+from pandas.io.sql import read_sql
+
+
+class AnnualGranularity(Enum):
+    MIN_5 = 252 * 24 * 12
+    MIN_15 = 252 * 24 * 4
+    MIN_30 = 252 * 24 * 2
+    H_1 = 252 * 24
+    H_4 = 252 * 6
+    D_1 = 252
 
 
 def get_password(env_variable: str) -> str:
@@ -50,3 +65,42 @@ def convert_to_number(val: str) -> Optional[float]:
     except Exception:
         processed_val = None
     return processed_val
+
+
+def compute_average(data: pd.Series, span: int = 14,  avg_type: str = 'ma') -> pd.Series:
+    """
+    :param data: series of data to compute the mean
+    :param span: the historical of date to take into account to compute the mean
+    :param avg_type:
+    - value 'ma' for a moving average
+    - value 'ewm' for an exponential moving average
+    - value 'wws' for Welles Wilder smoothing average
+    :return: a new seris with the values of the selected average type
+    """
+    if avg_type == 'ma':
+        avg = data.rolling(span).mean()
+    elif avg_type == 'ewm':
+        avg = data.ewm(span=span, min_periods=span).mean()
+    elif avg_type == 'wws':
+        avg = data.ewm(alpha=1/span, min_periods=span, adjust=False).mean()
+    else:
+        avg = pd.Series([np.NaN] * len(data))
+
+    return avg
+
+
+def get_candles(dsn, schema, start_date, end_date):
+    candles = pd.DataFrame()
+    with psycopg2.connect(dsn) as conn:
+        for table in ['candle', 'candle15m', 'candle30m', 'candle1h', 'candle4h', 'candle1d']:
+            sql = f'set search_path = {schema};'
+            sql += f'''
+                SELECT '{table}' as table, date, symbol, open, close, low, high, tickqty
+                FROM {table}
+                WHERE date >= %(start_date)s and date < %(end_date)s 
+                order by symbol, date
+            '''
+            candles_tmp = read_sql(sql, conn, params={'start_date': start_date, 'end_date': end_date})
+            candles = pd.concat([candles, candles_tmp])
+    candles.reset_index(drop=True, inplace=True)
+    return candles
