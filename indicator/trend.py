@@ -8,6 +8,47 @@ from indicator.indicator import IndicatorAbstract
 from indicator.oscillator import Atr
 
 
+class MovingAverage(IndicatorAbstract):
+    def compute(self, span: int = 20) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        ma = self.data[self.col].rolling(span, min_periods=span).mean()
+        self.result = ma.values
+        return self.result
+
+    def plot(self, fig: go.Figure, name: str, color: str = 'rgba(46, 134, 193, 0.5)') -> go.Figure:
+        width = 2
+        ma = self.result
+
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=ma,
+                                 mode='lines',
+                                 name=name,
+                                 line=dict(color=color, width=width)
+                                 ),
+                      row=2, col=1
+                      )
+        return fig
+
+
+class ExponentialMovingAverage(IndicatorAbstract):
+    def compute(self, span: int = 20) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        ema = self.data[self.col].ewm(span=span, min_periods=span).mean()
+        self.result = ema.values
+        return self.result
+
+    def plot(self, fig: go.Figure, name: str, color: str = 'rgba(46, 134, 193, 0.5)') -> go.Figure:
+        width = 2
+        ema = self.result
+
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=ema,
+                                 mode='lines',
+                                 name=name,
+                                 line=dict(color=color, width=width)
+                                 ),
+                      row=2, col=1
+                      )
+        return fig
+
 class BollingerBands(IndicatorAbstract):
     def compute(self, span: int = 20, nb_std: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         ma = self.data[self.col].rolling(span, min_periods=span).mean()
@@ -152,12 +193,15 @@ class Slope(IndicatorAbstract):
             y = data[i-span:i]
             x = np.arange(span).reshape((span, 1))
             y_scaled = (y - y.min()) / (y.max() - y.min())
+            if len(y_scaled[y_scaled.isnull().any(axis=1)]):
+                slopes.append(np.NaN)
+                continue
             x_scaled = (x - x.min()) / (x.max() - x.min())
             lr = LinearRegression()
             lr.fit(x_scaled, y_scaled)
             slopes.append(lr.coef_[0])
 
-        self.result = np.rad2deg(np.arctan(np.array(slopes)))
+        self.result = np.array([np.rad2deg(np.arctan(s)) for s in slopes])
         return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:

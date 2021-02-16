@@ -8,4 +8,5 @@ python-socketio==4.6.1
 python-dateutil==2.8.1
 PyYAML==5.3.1
 requests==2.24.0
+scikit-learn==0.23.2
 yoyo-migrations==7.2.1

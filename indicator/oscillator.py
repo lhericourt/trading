@@ -218,3 +218,24 @@ class Obv(IndicatorAbstract):
                       )
 
         return fig
+
+
+class AwesomeOscillator(IndicatorAbstract):
+    def compute(self, span_fast: int = 5, span_slow: int = 34) -> np.ndarray:
+        self.data['median'] = (self.data['high'] + self.data['low']) / 2
+        sma_fast = self.data['median'].rolling(span_fast, min_periods=span_fast).mean()
+        sma_slow = self.data['median'].rolling(span_slow, min_periods=span_slow).mean()
+        self.result = sma_fast - sma_slow
+        return self.result.values
+
+    def plot(self, fig: go.Figure) -> go.Figure:
+        color = 'rgba(136, 78, 160, 0.5)'
+        position = (1, 1)
+        ao = self.result
+        fig.add_trace(go.Bar(x=self.data['date'],
+                             y=ao,
+                             marker_color=color,
+                             name='awesome oscillator', ),
+                      row=position[0], col=position[1]
+                      )
+        return fig

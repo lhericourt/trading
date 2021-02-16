@@ -9,6 +9,7 @@ import psycopg2
 import pandas as pd
 import numpy as np
 from pandas.io.sql import read_sql
+from sklearn.linear_model import LinearRegression
 
 
 class AnnualGranularity(Enum):
@@ -104,3 +105,31 @@ def get_candles(dsn, schema, start_date, end_date):
             candles = pd.concat([candles, candles_tmp])
     candles.reset_index(drop=True, inplace=True)
     return candles
+
+
+def compute_sign_changement(data, col, span):
+    data['sign'] = np.where(data[col] < 0, -1, 1)
+    sign_sum = data['sign'].rolling(span).sum()
+    change_sign = np.where(np.abs(sign_sum) != span, 1, 0)
+    change_sign_pos = np.where((change_sign == 1) & (data[col] > 0), 1, 0)
+    change_sign_neg = np.where((change_sign == 1) & (data[col] < 0), 1, 0)
+    del data['sign']
+    return change_sign_pos, change_sign_neg
+
+
+def compute_slope(candles, idx, span=5, before=True):
+    if before:
+        y = candles.loc[idx - span + 1:idx, ['close']]
+    else:
+        y = candles.loc[idx: idx + span - 1, ['close']]
+    x = np.arange(span).reshape((span, 1))
+    y_scaled = (y - y.min()) / (y.max() - y.min())
+    if len(y_scaled[y_scaled.isnull().any(axis=1)]):
+        return 0
+    x_scaled = (x - x.min()) / (x.max() - x.min())
+    lr = LinearRegression()
+    try:
+        lr.fit(x_scaled, y_scaled)
+    except:
+        return 0
+    return np.rad2deg(np.arctan(lr.coef_[0]))[0]
