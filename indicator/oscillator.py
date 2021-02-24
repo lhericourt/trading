@@ -97,8 +97,13 @@ class Rsi(IndicatorAbstract):
                 avg_loss.append(((span - 1) * avg_loss[-1] + delta_neg[i]) / span)
         avg_gain = np.array(avg_gain)
         avg_loss = np.array(avg_loss)
+
+        # if avg_loss is null rsi must be equal to 100
+        avg_loss = np.where(avg_loss == 0, 1e-10, avg_loss)
+
         rs = avg_gain / avg_loss
         self.result = 100 - 100 / (1 + rs)
+
         return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:

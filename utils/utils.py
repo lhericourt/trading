@@ -117,11 +117,11 @@ def compute_sign_changement(data, col, span):
     return change_sign_pos, change_sign_neg
 
 
-def compute_slope(candles, idx, span=5, before=True):
+def compute_slope(candles, idx, span=5, before=True, col='close'):
     if before:
-        y = candles.loc[idx - span + 1:idx, ['close']]
+        y = candles.loc[idx - span + 1:idx, [col]]
     else:
-        y = candles.loc[idx: idx + span - 1, ['close']]
+        y = candles.loc[idx: idx + span - 1, [col]]
     x = np.arange(span).reshape((span, 1))
     y_scaled = (y - y.min()) / (y.max() - y.min())
     if len(y_scaled[y_scaled.isnull().any(axis=1)]):
@@ -133,3 +133,12 @@ def compute_slope(candles, idx, span=5, before=True):
     except:
         return 0
     return np.rad2deg(np.arctan(lr.coef_[0]))[0]
+
+
+def decompose_date(candles):
+    candles['15min'] = 15 * (candles['date'].dt.minute / 15).astype(int)
+    candles['30min'] = 30 * (candles['date'].dt.minute / 30).astype(int)
+    candles['1h'] = (candles['date'].dt.hour).astype(int)
+    candles['4h'] = 4 * (candles['date'].dt.hour / 4).astype(int)
+    candles['date_only'] = candles['date'].dt.date
+    return candles

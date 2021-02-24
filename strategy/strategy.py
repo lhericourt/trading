@@ -4,9 +4,9 @@ from typing import Tuple
 
 import pandas as pd
 
-from indicator.performance import CAGR
-from indicator.trend import Atr
-from indicator.risk import SharpeRatio, Calmar, Volatility
+from indicator.performance import CAGR, Expectancy
+from strategy.stop_loss import StopLoss
+from indicator.risk import SharpeRatio, Calmar, Volatility, RiskRewardRatio
 
 
 class StrategyAction(Enum):
@@ -16,16 +16,15 @@ class StrategyAction(Enum):
 
 
 class StrategyAbstract(ABC):
-    def __init__(self, data: pd.DataFrame, granularity: int, init_investment: int = 10000,
-                 trade_size: float = 0.1, stop_loss_pips=5e-4, take_profits_pips=1e-3) -> None:
+    def __init__(self, data: pd.DataFrame, granularity: int, stop_loss: StopLoss, init_investment: int = 10000,
+                 trade_size: float = 0.1) -> None:
         self.data = data.copy().reset_index(drop=True)
         self.granularity = granularity
         self.init_investment = init_investment
         self.trade_size = trade_size * 1e6
         self.indicators = dict()
         self.position = StrategyAction.DO_NOTHING.value
-        self.stop_loss_pips = stop_loss_pips
-        self.take_profits_pips = take_profits_pips
+        self.stop_loss = stop_loss
         self.actions = list()
         self.actions_price = list()
         self.ret = list()
@@ -43,13 +42,24 @@ class StrategyAbstract(ABC):
         return None
 
     def compute_performance(self) -> None:
-
         for ind in [CAGR, Volatility, SharpeRatio, Calmar]:
             instance = ind(self.data, 'return_cumsum')
             instance.compute(self.granularity)
             self.indicators[instance.__class__.__name__] = instance.result
 
-        return
+        for ind in [RiskRewardRatio]:
+            instance = ind(self.data)
+            instance.compute()
+            for ind_name, val in instance.result.items():
+                self.indicators[ind_name] = val
+
+        for ind in [Expectancy]:
+            instance = ind(self.data)
+            instance.compute(self.trade_size)
+            for ind_name, val in instance.result.items():
+                self.indicators[ind_name] = val
+
+        return None
 
     def _process_first_trade(self, candle) -> None:
         self.actions.append(StrategyAction.DO_NOTHING.value)
@@ -59,26 +69,22 @@ class StrategyAbstract(ABC):
         self.take_profit_list.append(0)
         return
 
-    def _take_buy(self, candle: pd.DataFrame) -> Tuple[float, float]:
+    def _take_buy(self, candle: pd.DataFrame, price: float, stop_loss: float, take_profit: float) -> Tuple[float, float]:
         self.actions.append(StrategyAction.BUY.value)
-        stop_loss = candle.low - self.stop_loss_pips
         self.stop_loss_list.append(stop_loss)
-        take_profit = candle.close + self.take_profits_pips
         self.take_profit_list.append(take_profit)
         self.position = StrategyAction.BUY.value
-        self.actions_price.append(candle.close)
-        self.ret.append(0)
+        self.actions_price.append(price)
+        self.ret.append(candle.close - price)
         return stop_loss, take_profit
 
-    def _take_sell(self, candle: pd.DataFrame) -> Tuple[float, float]:
+    def _take_sell(self, candle: pd.DataFrame, price: float, stop_loss: float, take_profit: float) -> Tuple[float, float]:
         self.actions.append(StrategyAction.SELL.value)
-        stop_loss = candle.close + self.stop_loss_pips
         self.stop_loss_list.append(stop_loss)
-        take_profit = candle.close - self.take_profits_pips
         self.take_profit_list.append(take_profit)
         self.position = StrategyAction.SELL.value
-        self.actions_price.append(candle.close)
-        self.ret.append(0)
+        self.actions_price.append(price)
+        self.ret.append(price - candle.close)
         return stop_loss, take_profit
 
     def _take_no_position(self, candle: pd.DataFrame) -> None:
@@ -152,58 +158,3 @@ class StrategyAbstract(ABC):
         self.data['stop_loss'] = self.stop_loss_list
         self.data['take_profit'] = self.take_profit_list
         return
-
-
-class Strategy1(StrategyAbstract):
-    def apply_strategy(self, span=20) -> pd.Series:
-        atr, _ = Atr(self.data).compute(span=span)
-
-        self.data['atr'] = atr
-        self.data['roll_max'] = self.data['high'].rolling(span).max()
-        self.data['roll_min'] = self.data['low'].rolling(span).min()
-        self.data['roll_max_vol'] = self.data['tickqty'].rolling(span).max()
-
-        previous_data = self.data.shift(1)
-        previous_data.columns = ['previous_' + x for x in previous_data.columns]
-
-        self.data = pd.concat([self.data, previous_data], axis=1)
-
-        actions = list()
-        for row in self.data.itertuples(index=False):
-            if self.position == StrategyAction.DO_NOTHING.value:
-                if row.high >= row.roll_max and row.tickqty > 1.5 * row.previous_roll_max_vol:
-                    actions.append(StrategyAction.BUY.value)
-                    self.position = StrategyAction.BUY.value
-                elif row.low <= row.roll_min and row.tickqty > 1.5 * row.previous_roll_max_vol:
-                    actions.append(StrategyAction.SELL.value)
-                    self.position = StrategyAction.SELL.value
-                else:
-                    actions.append(StrategyAction.DO_NOTHING.value)
-                    self.position = StrategyAction.DO_NOTHING.value
-
-            elif self.position == StrategyAction.BUY.value:
-                if row.low < row.previous_close - row.previous_atr:
-                    actions.append(StrategyAction.SELL.value)
-                    self.position = StrategyAction.DO_NOTHING.value
-                else:
-                    actions.append(StrategyAction.DO_NOTHING.value)
-
-            elif self.position == StrategyAction.SELL.value:
-                if row.high > row.previous_close + row.previous_atr:
-                    actions.append(StrategyAction.BUY.value)
-                    self.position = StrategyAction.DO_NOTHING.value
-                else:
-                    actions.append(StrategyAction.DO_NOTHING.value)
-
-        # We shift the action, because we pass the order once we did the detection
-        actions = [0] + actions[: -1]
-        self.data['action'] = actions
-
-        return self.data['action']
-
-
-
-
-
-
-
