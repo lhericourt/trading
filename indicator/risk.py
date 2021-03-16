@@ -80,13 +80,24 @@ class RiskRewardRatio(IndicatorAbstract):
                     reward = candle.action_price - candle.take_profit
                     ratio_risk_reward_list.append(round(reward / risk, 1))
             elif is_buying:
-                if candle.action == -1:
+                if candle.action in (0, -1):
                     is_buying = False
                     nb_trades += 1
+                if candle.action == -1:
+                    is_selling = True
+                    risk = candle.stop_loss - candle.action_price
+                    reward = candle.action_price - candle.take_profit
+                    ratio_risk_reward_list.append(round(reward / risk, 1))
             elif is_selling:
-                if candle.action == 1:
+                if candle.action in (0, 1):
                     is_selling = False
                     nb_trades += 1
+                if candle.action == 1:
+                    is_buying = True
+                    risk = candle.action_price - candle.stop_loss
+                    reward = candle.take_profit - candle.action_price
+                    ratio_risk_reward_list.append(round(reward / risk, 1))
+
         ratio_risk_reward_list = ratio_risk_reward_list[:nb_trades]
         ratio_risk_reward = round(float(np.mean(ratio_risk_reward_list)), 2)
         breakeven = round(100 / (1 + ratio_risk_reward), 1)

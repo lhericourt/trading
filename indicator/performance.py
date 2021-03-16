@@ -20,77 +20,52 @@ class CAGR(IndicatorAbstract):
         pass
 
 
-class HitRatio(IndicatorAbstract):
-    def compute(self) -> Dict[str, Union[int, float]]:
-        nb_trades_buy, nb_trades_sell = 0, 0
-        nb_winning_trades_buy, nb_winning_trades_sell = 0, 0
-        init_action_price = None
-        is_buying = False
-        is_selling = False
-        for candle in self.data.itertuples():
-            if not is_buying and not is_selling:
-                if candle.action == 1:
-                    is_buying = True
-                    init_action_price = candle.action_price
-                elif candle.action == -1:
-                    is_selling = True
-                    init_action_price = candle.action_price
-            elif is_buying:
-                if candle.action == -1:
-                    is_buying = False
-                    nb_trades_buy += 1
-                    if init_action_price < candle.action_price:
-                        nb_winning_trades_buy += 1
-            elif is_selling:
-                if candle.action == 1:
-                    is_selling = False
-                    nb_trades_sell += 1
-                    if init_action_price > candle.action_price:
-                        nb_winning_trades_sell += 1
-
-        self.result = {
-            'nb_trades': nb_trades_buy + nb_trades_sell,
-            'ratio_winning_trades': round(100 * (nb_winning_trades_buy + nb_winning_trades_sell) / (nb_trades_buy + nb_trades_sell), 1),
-            'nb_buying_trades': nb_trades_buy,
-            'ratio_winning_buying_trades': round(100 * nb_winning_trades_buy / nb_trades_buy, 1),
-            'nb_selling_trades': nb_trades_sell,
-            'ratio_winning_selling_trades': round(100 * nb_winning_trades_sell / nb_trades_sell, 1)
-        }
-
-        return self.result
-
-    def plot(self, fig) -> go.Figure:
-        pass
-
-
 class Expectancy(IndicatorAbstract):
     def compute(self, trade_size) -> Dict[str, Union[int, float]]:
         wins, losses = list(), list()
+        idx_wins_sell, idx_losses_sell, idx_wins_buy, idx_losses_buy = list(), list(), list(), list()
         init_action_price = None
         is_buying = False
         is_selling = False
+        prev_candle = None
+        idx_init = None
         for candle in self.data.itertuples():
             if not is_buying and not is_selling:
                 if candle.action == 1:
                     is_buying = True
                     init_action_price = candle.action_price
+                    idx_init = candle.Index
                 elif candle.action == -1:
                     is_selling = True
                     init_action_price = candle.action_price
+                    idx_init = candle.Index
             elif is_buying:
-                if candle.action == -1:
+                if candle.action in (0, -1):
                     is_buying = False
-                    if init_action_price < candle.action_price:
-                        wins.append(candle.action_price - init_action_price)
+                    if init_action_price < prev_candle.action_price:
+                        wins.append(prev_candle.action_price - init_action_price)
+                        idx_wins_buy.append(idx_init)
                     else:
-                        losses.append(init_action_price - candle.action_price)
+                        losses.append(init_action_price - prev_candle.action_price)
+                        idx_losses_buy.append(idx_init)
+                if candle.action == -1:
+                    is_selling = True
+                    init_action_price = candle.action_price
+                    idx_init = candle.Index
             elif is_selling:
-                if candle.action == 1:
+                if candle.action in (0, 1):
                     is_selling = False
-                    if init_action_price > candle.action_price:
-                        wins.append(init_action_price - candle.action_price)
+                    if init_action_price > prev_candle.action_price:
+                        wins.append(init_action_price - prev_candle.action_price)
+                        idx_wins_sell.append(idx_init)
                     else:
-                        losses.append(candle.action_price - init_action_price)
+                        losses.append(prev_candle.action_price - init_action_price)
+                        idx_losses_sell.append(idx_init)
+                if candle.action == 1:
+                    is_buying = True
+                    init_action_price = candle.action_price
+                    idx_init = candle.Index
+            prev_candle = candle
 
         nb_trades = len(wins + losses)
         prct_winning = len(wins) / nb_trades
@@ -103,7 +78,13 @@ class Expectancy(IndicatorAbstract):
         self.result = {'NbTrades': nb_trades,
                        'HitRatio': prct_winning,
                        'Expectancy': expectancy,
-                       'ProfitFactor': profit_factor}
+                       'ProfitFactor': profit_factor,
+                       'MeanWinsPips': round(1e4 * np.mean(wins), 1),
+                       'MeanLossesPips': round(1e4 * np.mean(losses), 1),
+                       'idx_wins_buy': idx_wins_buy,
+                       'idx_wins_sell': idx_wins_sell,
+                       'idx_losses_buy': idx_losses_buy,
+                       'idx_losses_sell': idx_losses_sell}
 
         return self.result
 

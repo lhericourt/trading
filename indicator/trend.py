@@ -1,6 +1,5 @@
 from typing import Tuple
 import plotly.graph_objects as go
-import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
@@ -30,7 +29,7 @@ class MovingAverage(IndicatorAbstract):
 
 
 class ExponentialMovingAverage(IndicatorAbstract):
-    def compute(self, span: int = 20) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def compute(self, span: int = 20) -> np.ndarray:
         ema = self.data[self.col].ewm(span=span, min_periods=span).mean()
         self.result = ema.values
         return self.result
@@ -41,6 +40,55 @@ class ExponentialMovingAverage(IndicatorAbstract):
 
         fig.add_trace(go.Scatter(x=self.data['date'],
                                  y=ema,
+                                 mode='lines',
+                                 name=name,
+                                 line=dict(color=color, width=width)
+                                 ),
+                      row=2, col=1
+                      )
+        return fig
+
+
+class WeightedMovingAverage(IndicatorAbstract):
+    def compute(self, span: int = 20) -> np.ndarray:
+        weights = np.arange(1, span + 1)
+        weights_sum = weights.sum()
+        wma = self.data[self.col].rolling(window=span).apply(lambda x: (x * weights).sum() / weights_sum, raw=True)
+        self.result = wma.values
+        return self.result
+
+    def plot(self, fig: go.Figure, name: str, color: str = 'rgba(46, 134, 193, 0.5)') -> go.Figure:
+        width = 2
+        wma = self.result
+
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=wma,
+                                 mode='lines',
+                                 name=name,
+                                 line=dict(color=color, width=width)
+                                 ),
+                      row=2, col=1
+                      )
+        return fig
+
+
+class HullMovingAverage(IndicatorAbstract):
+    def compute(self, span: int = 20) -> np.ndarray:
+        wma = WeightedMovingAverage(self.data, col=self.col)
+        self.data['wma_span1'] = wma.compute(span)
+        self.data['wma_span2'] = wma.compute(span // 2)
+        self.data['diff_wma'] = self.data['wma_span2'] * 2 - self.data['wma_span1']
+        wma_sqrt = WeightedMovingAverage(self.data, col='diff_wma')
+        wma = wma_sqrt.compute(int(np.sqrt(span)))
+        self.result = wma
+        return self.result
+
+    def plot(self, fig: go.Figure, name: str, color: str = 'rgba(46, 134, 193, 0.5)') -> go.Figure:
+        width = 2
+        wma = self.result
+
+        fig.add_trace(go.Scatter(x=self.data['date'],
+                                 y=wma,
                                  mode='lines',
                                  name=name,
                                  line=dict(color=color, width=width)

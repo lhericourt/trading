@@ -38,10 +38,10 @@ class Macd(IndicatorAbstract):
                                                                                                np.ndarray, np.ndarray]:
         ewm_fast = self.data[self.col].ewm(span=span_fast, min_periods=span_fast).mean()
         ewm_slow = self.data[self.col].ewm(span=span_slow, min_periods=span_slow).mean()
-        macd_ = ewm_fast - ewm_slow
-        signal = macd_.ewm(span=span_signal, min_periods=span_signal).mean()
-        hist = macd_ - signal
-        self.result = (macd_.values, signal.values, hist.values)
+        macd_line = ewm_fast - ewm_slow
+        signal = macd_line.ewm(span=span_signal, min_periods=span_signal).mean()
+        hist = macd_line - signal
+        self.result = (macd_line.values, signal.values, macd_line.values)
         return self.result
 
     def plot(self, fig: go.Figure) -> go.Figure:
@@ -52,14 +52,14 @@ class Macd(IndicatorAbstract):
         position = (1, 1)
         macd_, signal, hist = self.result
 
-        fig.add_trace(go.Scatter(x=self.data['date'],
-                                 y=macd_,
-                                 mode='lines',
-                                 name='macd',
-                                 line=dict(color=color1, width=width)
-                                 ),
-                      row=position[0], col=position[1]
-                      )
+        #fig.add_trace(go.Scatter(x=self.data['date'],
+        #                         y=macd_,
+        #                         mode='lines',
+        #                         name='macd',
+        #                         line=dict(color=color1, width=width)
+        #                         ),
+        #              row=position[0], col=position[1]
+        #              )
         fig.add_trace(go.Scatter(x=self.data['date'],
                                  y=signal,
                                  mode='lines',
@@ -244,3 +244,5 @@ class AwesomeOscillator(IndicatorAbstract):
                       row=position[0], col=position[1]
                       )
         return fig
+
+
