@@ -1,12 +1,10 @@
-import numpy as np
-
 from strategy.strategy import StrategyAbstract
-from indicator.trend import MovingAverage, BollingerBands
+from indicator.trend import BollingerBands
 from indicator.oscillator import Rsi
 
 
 class MA500Rsi(StrategyAbstract):
-    def apply_strategy(self, span_rsi=5, span_ma=500, nb_std_ma=0.5):
+    def apply_strategy(self, span_rsi=5, span_ma=500, nb_std_ma=0.5, spread=0):
         self.data = self.data.copy()
         self.data['rsi'] = Rsi(self.data).compute(span_rsi)
         self.data['ma_rsi'], self.data['ma_rsi_up'], self.data['ma_rsi_down'] = BollingerBands(self.data, 'rsi').compute(span_ma, nb_std_ma)
@@ -37,7 +35,7 @@ class MA500Rsi(StrategyAbstract):
             else:
                 self.sell_signal = False
 
-            stop_loss, take_profit = self.make_decision(row, stop_loss, take_profit)
+            stop_loss, take_profit = self.make_decision(row, stop_loss, take_profit, spread)
             self._do_common_processes(row, nb_prev, first_rows=False)
 
         self._save_strategy_result()

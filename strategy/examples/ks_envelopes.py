@@ -18,6 +18,7 @@ class KsEnvelopes(StrategyAbstract):
         self.stop_loss.data = self.data
 
         prev_row = None
+        comes_from = None
         in_ma_zone = False
         for row in self.data.itertuples(index=True):
             if prev_row is None:
@@ -25,15 +26,25 @@ class KsEnvelopes(StrategyAbstract):
             elif self.position == StrategyAction.DO_NOTHING.value:
                 if not in_ma_zone and row.close > row.ma_low and row.close < row.ma_high:
                     in_ma_zone = True
+                    if prev_row.close > prev_row.ma_high:
+                        comes_from = 'up'
+                    elif prev_row.close < prev_row.ma_low:
+                        comes_from = 'down'
                     self._take_no_position(row)
                 elif in_ma_zone and row.close > row.ma_high:
                     in_ma_zone = False
-                    stop_loss, take_profit = self.stop_loss.compute(row.Index, row.close, buy_action=True)
-                    self._take_buy(row, row.close, stop_loss, take_profit)
+                    if comes_from == 'up':
+                        stop_loss, take_profit = self.stop_loss.compute(row.Index, row.close, buy_action=True)
+                        self._take_buy(row, row.close, stop_loss, take_profit)
+                    elif comes_from == 'down':
+                        self._take_no_position(row)
                 elif in_ma_zone and row.close < row.ma_low:
                     in_ma_zone = False
-                    stop_loss, take_profit = self.stop_loss.compute(row.Index, row.close, buy_action=False)
-                    self._take_sell(row, row.close, stop_loss, take_profit)
+                    if comes_from == 'down':
+                        stop_loss, take_profit = self.stop_loss.compute(row.Index, row.close, buy_action=False)
+                        self._take_sell(row, row.close, stop_loss, take_profit)
+                    elif comes_from == 'up':
+                        self._take_no_position(row)
                 else:
                     self._take_no_position(row)
             else:

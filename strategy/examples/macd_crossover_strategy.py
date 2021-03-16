@@ -3,7 +3,7 @@ from indicator.oscillator import Macd
 from indicator.transformation import Fisher
 
 
-class MACDFlipStrategy(StrategyAbstract):
+class MACDCrossOverStrategy(StrategyAbstract):
     def apply_strategy(self, span_fast: int = 12, span_slow: int = 26, span_signal: int = 9):
         self.data = self.data.copy()
         macd = Macd(self.data)
@@ -15,7 +15,7 @@ class MACDFlipStrategy(StrategyAbstract):
         self._reinit_data()
         self.stop_loss.data = self.data
 
-        nb_prev = 5
+        nb_prev = 2
         self.prev_rows = nb_prev * [None]
 
         stop_loss, take_profit = 0, 0
@@ -26,12 +26,12 @@ class MACDFlipStrategy(StrategyAbstract):
                 self._do_common_processes(row, nb_prev, first_rows=True)
                 continue
 
-            if all([x.macd_line < 0 for x in self.prev_rows]) and row.macd_line > 0:
+            if all([x.macd_line < x.macd_signal for x in self.prev_rows]) and row.macd_line > row.macd_signal:
                 self.buy_signal = True
             else:
                 self.buy_signal = False
 
-            if all([x.macd_line > 0 for x in self.prev_rows]) and row.macd_line < 0:
+            if all([x.macd_line > x.macd_signal for x in self.prev_rows]) and row.macd_line < row.macd_signal:
                 self.sell_signal = True
             else:
                 self.sell_signal = False

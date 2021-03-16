@@ -5,7 +5,7 @@ from utils.utils import compute_sign_changement
 
 
 class Ema5Ema12Rsi21(StrategyAbstract):
-    def apply_strategy(self, stop_loss_pips=1e-3, update_stop_loss=False):
+    def apply_strategy(self, update_stop_loss=False):
         self.data = self.data.copy()
 
         ema = ExponentialMovingAverage(self.data)
