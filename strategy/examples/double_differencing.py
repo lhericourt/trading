@@ -1,21 +1,19 @@
-import numpy as np
+import pandas as pd
 
 from strategy.strategy import StrategyAbstract
-from indicator.trend import HullMovingAverage
 
 
-class HullRSI(StrategyAbstract):
-    def apply_strategy(self, span=6, spread=0):
+class DoubleDifferencing(StrategyAbstract):
+    def apply_strategy(self, span=2, spread=0):
+
         self.data = self.data.copy()
-        # We compute RSI using Hull average instead of smooth average
-        delta = self.data['close'] - self.data['close'].shift(1)
-        self.data['delta_pos'] = np.where(delta >= 0, delta, 0)
-        self.data['delta_neg'] = np.where(delta < 0, abs(delta), 0)
-        self.data['delta_hull_pos'] = HullMovingAverage(self.data, col='delta_pos').compute(span)
-        self.data['delta_hull_neg'] = HullMovingAverage(self.data, col='delta_neg').compute(span)
-        self.data['rs'] = self.data['delta_hull_pos'] / self.data['delta_hull_neg']
-        self.data['rs'].replace([np.inf, -np.inf], 1e10, inplace=True)
-        self.data['hull_rsi'] = 100 - 100 / (1 + self.data['rs'])
+        close_and_shift_close = pd.concat([self.data['close'], self.data['close'].shift(span)], axis=1)
+        close_and_shift_close.columns = ['close', 'shift_close']
+        close_and_shift_close['diff'] = close_and_shift_close['close'] - close_and_shift_close['shift_close']
+
+        diff_and_shift_diff = pd.concat([close_and_shift_close['diff'], close_and_shift_close['diff'].shift(span)], axis=1)
+        diff_and_shift_diff.columns = ['diff', 'shift_diff']
+        self.data['second_diff'] = diff_and_shift_diff['diff'] - diff_and_shift_diff['shift_diff']
 
         self.data.dropna(axis=0, inplace=True)
         self.data.reset_index(drop=True, inplace=True)
@@ -34,11 +32,11 @@ class HullRSI(StrategyAbstract):
                 self._do_common_processes(row, nb_prev, first_rows=True)
                 continue
 
-            if all([x.hull_rsi > 10 for x in self.prev_rows]) and row.hull_rsi < 10:
+            if all([x.second_diff > -0.002 for x in self.prev_rows]) and row.second_diff < -0.002:
                 self.buy_signal = True
             else:
                 self.buy_signal = False
-            if all([x.hull_rsi < 90 for x in self.prev_rows]) and row.hull_rsi > 90:
+            if all([x.second_diff < 0.002 for x in self.prev_rows]) and row.second_diff > 0.002:
                 self.sell_signal = True
             else:
                 self.sell_signal = False
