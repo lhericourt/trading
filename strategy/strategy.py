@@ -85,10 +85,11 @@ class StrategyAbstract(ABC):
         self.stop_loss_list.append(stop_loss)
         self.take_profit_list.append(take_profit)
         self.position = StrategyAction.BUY.value
+        price += spread
         self.actions_price.append(price)
-        self.ret.append(candle.close - price - spread)
+        self.ret.append(candle.close - price)
         self.position = StrategyAction.BUY.value
-        self.current_return += candle.close - price - spread
+        self.current_return += candle.close - price
         self.current_returns.append(self.current_return)
         return candle.close - price
 
@@ -97,10 +98,11 @@ class StrategyAbstract(ABC):
         self.stop_loss_list.append(stop_loss)
         self.take_profit_list.append(take_profit)
         self.position = StrategyAction.SELL.value
+        price -= spread
         self.actions_price.append(price)
-        self.ret.append(price - candle.close - spread)
+        self.ret.append(price - candle.close)
         self.position = StrategyAction.SELL.value
-        self.current_return += price - candle.close - spread
+        self.current_return += price - candle.close
         self.current_returns.append(self.current_return)
         return price - candle.close
 

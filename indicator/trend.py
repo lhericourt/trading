@@ -237,11 +237,11 @@ class Slope(IndicatorAbstract):
     def compute(self, span: int = 5) -> np.ndarray:
         data = self.data[self.col].reset_index(drop=True)
         slopes = [0] * (span - 1)
-        for i in range(span, len(data) + 1):
-            y = data[i-span:i]
+        for i in range(span - 1, len(data)):
+            y = data.loc[i - span + 1: i]
             x = np.arange(span).reshape((span, 1))
             y_scaled = (y - y.min()) / (y.max() - y.min())
-            if len(y_scaled[y_scaled.isnull().any(axis=1)]):
+            if len(y_scaled[y_scaled.isnull()]):
                 slopes.append(np.NaN)
                 continue
             x_scaled = (x - x.min()) / (x.max() - x.min())

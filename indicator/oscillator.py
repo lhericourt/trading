@@ -198,7 +198,7 @@ class Stochastic(IndicatorAbstract):
 
 class Obv(IndicatorAbstract):
     def compute(self) -> np.ndarray:
-        change = self.data['close'].pct_change()
+        change = self.data[self.col].pct_change()
         direction_plus = np.where(change > 0, 1, 0)
         direction_minus = np.where(change < 0, -1, 0)
         direction = direction_plus + direction_minus
@@ -241,6 +241,32 @@ class AwesomeOscillator(IndicatorAbstract):
                              y=ao,
                              marker_color=color,
                              name='awesome oscillator', ),
+                      row=position[0], col=position[1]
+                      )
+        return fig
+
+
+class Outstreched(IndicatorAbstract):
+    def compute(self, momentum_span: int = 3, ma_span: int = 5) -> np.ndarray:
+        col_and_shift_col = pd.concat([self.data[self.col], self.data[self.col].shift(momentum_span)], axis=1)
+        col_and_shift_col.columns = ['col', 'shift_col']
+        col_and_shift_col['diff'] = col_and_shift_col['col'] - col_and_shift_col['shift_col']
+        col_and_shift_col['pos'] = np.where(col_and_shift_col['diff'] > 0, 1, 0)
+        col_and_shift_col['neg'] = np.where(col_and_shift_col['diff'] < 0, 1, 0)
+        col_and_shift_col['sum_pos'] = col_and_shift_col['pos'].rolling(momentum_span).sum()
+        col_and_shift_col['sum_neg'] = col_and_shift_col['neg'].rolling(momentum_span).sum()
+        col_and_shift_col['raw_outstreched'] = col_and_shift_col['sum_pos'] - col_and_shift_col['sum_neg']
+        self.result = col_and_shift_col['raw_outstreched'].ewm(span=ma_span, min_periods=ma_span).mean()
+        return self.result.values
+
+    def plot(self, fig: go.Figure) -> go.Figure:
+        color = 'rgba(136, 78, 160, 0.5)'
+        position = (1, 1)
+        outstreched = self.result
+        fig.add_trace(go.Bar(x=self.data['date'],
+                             y=outstreched,
+                             marker_color=color,
+                             name='outstreched indicator', ),
                       row=position[0], col=position[1]
                       )
         return fig
