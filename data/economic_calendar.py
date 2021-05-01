@@ -37,18 +37,20 @@ countries_id = {'australia_id': '25',
 header = {
     'Host': 'fr.investing.com',
     'Connection': 'keep-alive',
-    'Content-Length': '235',
     'Accept': '*/*',
-    'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
+    'Accept-Encoding': 'gzip',
+    'Accept-Language': 'fr,en-US;q=0.9,en;q=0.8',
+    'Content-Length': '370',
     'Content-Type': 'application/x-www-form-urlencoded',
     'Origin': 'https://fr.investing.com',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Dest': 'empty',
     'Referer': 'https://fr.investing.com/economic-calendar/',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7'
+    'sec-ch-ua': '"Not A;Brand";v="99", "Chromium";v="90", "Google Chrome";v="90"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-dest': 'empty',
+    'sec-ch-ua-mode': 'cors',
+    'sec-ch-ua-site': 'same-origin',
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
 }
 
 
@@ -96,7 +98,8 @@ def get_events(date: str) -> List[Dict]:
                    ('timeZone', time_zone_gmt0),
                    ('timeFilter', 'timeRemain'),
                    ('currentTab', 'custom'),
-                   ('limit_from', '0')
+                   ('limit_from', '0'),
+                   ('submitFilters', '1')
                    ])
 
     r = requests.post(url, data=params, headers=header)
